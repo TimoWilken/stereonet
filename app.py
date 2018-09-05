@@ -10,6 +10,7 @@ from tkinter import ttk, filedialog
 from math import pi, radians
 
 from stereonets import EqualAngle, EqualArea
+from transformation import Line, Plane
 from grouping import DataGroup
 from serialize import stereonet_object_encoder, stereonet_object_decoder
 from ui import StereonetInput
@@ -43,29 +44,33 @@ class StereonetApp(ttk.Frame):  # pylint: disable=too-many-ancestors
         ttk.Label(statusbar, textvariable=self._status_message) \
            .grid(row=0, column=0, sticky=tk.NSEW)
 
-        def remove_group_netobjs(group):
+        def unplot_group_netobjs(group):
             for netobj in group.net_objects():
                 for net in self._stereonets:
                     net.remove_net_object(netobj)
-        def show_group_netobjs(group):
+        def plot_group_netobjs(group):
             for netobj in group.net_objects():
                 for net in self._stereonets:
                     net.plot(netobj, **group.style)
-        def remove_group_item(group, netobj):
-            if not group.hidden:
+        def unplot_group_item(group, netobj):
+            if group.enabled.get():
                 for net in self._stereonets:
                     net.remove_net_object(netobj)
-        def add_group_item(group, netobj):
-            if not group.hidden:
+        def plot_group_item(group, netobj):
+            if group.enabled.get():
                 for net in self._stereonets:
                     net.plot(netobj, **group.style)
 
-        self.data_groups = [DataGroup('test'), DataGroup('test 2')]
+        self.data_groups = [DataGroup('test', Line, False),
+                            DataGroup('test 2', Plane, False)]
+        self.data_groups[0].add_net_object(Line(*map(radians, (10, 180))))
+        self.data_groups[0].add_net_object(Line(*map(radians, (5, 330))))
+        self.data_groups[1].add_net_object(Plane(*map(radians, (210, 85))))
         for group in self.data_groups:
-            group.register_hide_group(remove_group_netobjs)
-            group.register_show_group(show_group_netobjs)
-            group.register_remove_item(remove_group_item)
-            group.register_add_item(add_group_item)
+            group.register_hide_group(unplot_group_netobjs)
+            group.register_show_group(plot_group_netobjs)
+            group.register_remove_item(unplot_group_item)
+            group.register_add_item(plot_group_item)
 
         self._net_input = StereonetInput(self, self.data_groups)
         self._net_input.grid(row=1, column=2, sticky=tk.NSEW)
@@ -152,6 +157,13 @@ class StereonetApp(ttk.Frame):  # pylint: disable=too-many-ancestors
         add_command('Remove current group', self.remove_current_group,
                     '<Control-d>', menu=groups_menu, toolbar=toolbar,
                     underline=0)
+
+        theme_menu = tk.Menu(menubar, tearoff=False)
+        menubar.add_cascade(label='Theme', underline=0, menu=theme_menu)
+        theme_var = tk.StringVar(theme_menu, ttk.Style().theme_use())
+        theme_var.trace('w', lambda *_: ttk.Style().theme_use(theme_var.get()))
+        for theme in ttk.Style().theme_names():
+            theme_menu.add_radiobutton(label=theme, variable=theme_var)
 
     def _setup_stereonets(self, size):
         '''Create stereonets and populate them with guide lines.'''

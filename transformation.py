@@ -15,6 +15,7 @@ class Rotation:
     '''The plane spanned by one line rotated around an axis.'''
 
     __slots__ = 'rot_axis', 'base_line'
+    FIELDS = __slots__
 
     def __init__(self, rot_axis, base_line):
         self.rot_axis = rot_axis
@@ -36,6 +37,7 @@ class Plane(Rotation):
     '''Represents a plane on a stereonet.'''
 
     __slots__ = 'strike', 'dip'
+    FIELDS = __slots__
 
     def __init__(self, strike, dip):
         self.strike, self.dip = strike, dip
@@ -73,6 +75,7 @@ class Line:
     '''Represents a line on a stereonet.'''
 
     __slots__ = 'plunge', 'trend'
+    FIELDS = __slots__
 
     def __init__(self, plunge, trend):
         self.plunge, self.trend = plunge, trend

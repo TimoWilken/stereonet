@@ -97,9 +97,9 @@ class GroupListItem(ttk.Frame):  # pylint: disable=too-many-ancestors
            .grid(row=0, column=1, sticky=tk.NSEW)
         ttk.Entry(self, textvariable=group.name) \
            .grid(row=0, column=2, sticky=tk.NSEW)
-        ttk.Button(self, text='Style', command=self.edit_style) \
+        ttk.Button(self, text='Style', width=5, command=self.edit_style) \
            .grid(row=0, column=3, sticky=tk.NSEW)
-        ttk.Button(self, text='Delete', command=self.delete) \
+        ttk.Button(self, text='Delete', width=6, command=self.delete) \
            .grid(row=0, column=99, sticky=tk.NSEW)
 
     def edit_style(self):
@@ -135,6 +135,7 @@ class StereonetInput(ttk.PanedWindow):  # pylint: disable=too-many-ancestors
         self._groups_scroll.columnconfigure(0, weight=1)
 
         self._groups_sel_var = tk.IntVar(self)
+        self._groups_sel_var.trace('w', lambda *_: self.select_group())
         for group in data_groups:
             self.add_group(group)
 
@@ -144,20 +145,17 @@ class StereonetInput(ttk.PanedWindow):  # pylint: disable=too-many-ancestors
         data_frm.rowconfigure(0, weight=1)
         data_frm.columnconfigure(0, weight=1)
 
-        data_tree_columns = {'type': 'Type of data',
-                             'num_data': 'Number of data',
-                             'displayed_as': 'Displayed as'}
+        data_tree_columns = {0: 'Strike', 1: 'Dip'}
         self._data_tree = data_tree = ttk.Treeview(
-            data_frm, columns=tuple(data_tree_columns.keys()))
+            data_frm, columns=(0, 1))
         data_tree.grid(row=0, column=0, sticky=tk.NSEW)
-        data_tree.heading('#0', text='Group')
-        data_tree.column('#0', stretch=True)
+        data_tree.heading('#0', text='#')
+        data_tree.column('#0', width=50, stretch=False)
         for col, name in data_tree_columns.items():
+            data_tree.column(col, width=75, stretch=True, anchor=tk.CENTER)
             data_tree.heading(col, text=name)
-        for col in data_tree_columns:
-            data_tree.column(col, stretch=False)
-        data_tree.insert('', tk.END, text='Test',
-                         values=('Planes', 10, 'Poles'))
+        data_tree.insert('', tk.END, text='1', values=(310, 10))
+        data_tree.insert('', tk.END, text='2', values=(0, 4))
 
         data_entry = ttk.Frame(data_frm)
         data_entry.grid(row=1, column=0, sticky=tk.NSEW)
@@ -196,3 +194,17 @@ class StereonetInput(ttk.PanedWindow):  # pylint: disable=too-many-ancestors
         self._group_widgets[group].delete()
         del self._group_widgets[group]
         self._data_groups.remove(group)
+
+    def select_group(self, group=None):
+        '''Select the given group and allow the user to edit its data.'''
+        if not group:
+            group = self.currently_selected_group()
+        if group.data_type:
+            for i, field in enumerate(group.data_type.FIELDS):
+                self._data_tree.heading(i, text=field.title())
+        self._data_tree.selection_set()
+        self._data_tree.delete(*self._data_tree.get_children())
+        for i, netobj in enumerate(group.net_objects()):
+            item_values = tuple(getattr(netobj, field)
+                                for field in group.data_type.FIELDS)
+            self._data_tree.insert('', tk.END, text=i+1, values=item_values)

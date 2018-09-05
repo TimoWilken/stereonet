@@ -69,7 +69,7 @@ class Stereonet(tk.Canvas, metaclass=abc.ABCMeta):
     @size.setter
     def size(self, value):
         if self._size != value:
-            # <Configure> handler (_resize_all) will set _size.
+            # <Configure> handler (_resize_all) will set self._size.
             self.configure(width=value, height=value)
 
     def _resize_all(self, event):
@@ -164,7 +164,7 @@ class Stereonet(tk.Canvas, metaclass=abc.ABCMeta):
         except KeyError:
             raise ValueError('net object not plotted')
         else:
-            netobj.destroy()
+            self.delete(netobj)
 
     @classmethod
     @abc.abstractmethod

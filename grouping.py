@@ -9,17 +9,38 @@ from tkinter import StringVar, BooleanVar
 class DataGroup:
     '''A group of data of the same type.'''
 
-    def __init__(self, name, enabled=True, **style):
+    def __init__(self, name, data_type=None, enabled=True, **style):
         self._data = []
+        self._data_type = data_type
         self.name = StringVar(None, name)
         self.enabled = BooleanVar(None, enabled)
+        def update_hidden_status(*_):
+            if self.enabled.get():
+                self.show_group()
+            else:
+                self.hide_group()
+        self.enabled.trace('w', update_hidden_status)
         self.style = style
         self._callbacks = defaultdict(list)
 
+    @property
+    def data_type(self):
+        '''The type of structural data stored in this group.'''
+        return self._data_type
+    @data_type.setter
+    def data_type(self, value):
+        if not self._data:
+            self._data_type = value
+        elif self._data_type != value:
+            raise ValueError('cannot change data_type if the group holds data')
+
     def add_net_object(self, netobj):
         '''Append the specified structural datum to the group.'''
-        if self._data and not isinstance(netobj, type(self._data[0])):
-            raise TypeError('all data in a group must be of the same type')
+        if not self._data and not self._data_type:
+            self._data_type = type(netobj)
+        elif self._data and not isinstance(netobj, self._data_type):
+            raise TypeError('expected a {}, but got a {}'.format(
+                self._data_type.__name__, type(netobj).__name__))
         self._data.append(netobj)
         for callback in self._callbacks['add_item']:
             callback(self, netobj)
