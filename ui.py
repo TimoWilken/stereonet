@@ -90,7 +90,7 @@ class GroupListItem(ttk.Frame):  # pylint: disable=too-many-ancestors
         super().__init__(master)
         self.group = group
         self.on_delete = on_delete
-        self.columnconfigure(1, weight=1)
+        self.columnconfigure(2, weight=1)
         ttk.Radiobutton(self, value=id(group), variable=sel_variable) \
            .grid(row=0, column=0, sticky=tk.NSEW)
         ttk.Checkbutton(self, variable=group.enabled) \
@@ -121,7 +121,7 @@ class StereonetInput(ttk.PanedWindow):  # pylint: disable=too-many-ancestors
                  focus_key_groups=None, focus_key_data=None):
         super().__init__(master, orient=tk.VERTICAL)
         self._cur_new_group_counter = 1
-        self._data_groups = data_groups
+        self._data_groups = []
         self._group_widgets = {}
 
         groups_frm = ttk.LabelFrame(self, text='Groups',
@@ -132,6 +132,7 @@ class StereonetInput(ttk.PanedWindow):  # pylint: disable=too-many-ancestors
 
         self._groups_scroll = ScrollableFrame(
             groups_frm, grid={'row': 0, 'column': 0, 'sticky': tk.NSEW})
+        self._groups_scroll.columnconfigure(0, weight=1)
 
         self._groups_sel_var = tk.IntVar(self)
         for group in data_groups:
