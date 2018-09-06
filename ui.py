@@ -4,6 +4,7 @@
 
 import tkinter as tk
 from tkinter import ttk
+from math import radians, degrees
 
 from grouping import DataGroup
 
@@ -86,13 +87,16 @@ class StyleEditor(tk.Toplevel):
 class GroupListItem(ttk.Frame):  # pylint: disable=too-many-ancestors
     '''A widget for editing and selecting a group out of a list.'''
 
-    def __init__(self, master, group, sel_variable, *, on_delete=None):
+    def __init__(self, master, group, sel_variable, *, selected=True,
+                 on_delete=None):
         super().__init__(master)
         self.group = group
         self.on_delete = on_delete
         self.columnconfigure(2, weight=1)
-        ttk.Radiobutton(self, value=id(group), variable=sel_variable) \
-           .grid(row=0, column=0, sticky=tk.NSEW)
+        sel_btn = ttk.Radiobutton(self, value=id(group), variable=sel_variable)
+        sel_btn.grid(row=0, column=0, sticky=tk.NSEW)
+        if selected:
+            sel_btn.invoke()
         ttk.Checkbutton(self, variable=group.enabled) \
            .grid(row=0, column=1, sticky=tk.NSEW)
         ttk.Entry(self, textvariable=group.name) \
@@ -145,6 +149,7 @@ class StereonetInput(ttk.PanedWindow):  # pylint: disable=too-many-ancestors
         data_frm.rowconfigure(0, weight=1)
         data_frm.columnconfigure(0, weight=1)
 
+        self._data_tree_items = {}
         data_tree_columns = {0: 'Strike', 1: 'Dip'}
         self._data_tree = data_tree = ttk.Treeview(
             data_frm, columns=(0, 1))
@@ -159,8 +164,33 @@ class StereonetInput(ttk.PanedWindow):  # pylint: disable=too-many-ancestors
 
         data_entry = ttk.Frame(data_frm)
         data_entry.grid(row=1, column=0, sticky=tk.NSEW)
-        ttk.Entry(data_entry) \
-           .grid(row=0, column=0, sticky=tk.NSEW)
+        data_entry.columnconfigure(1, weight=1)
+        data_entry.columnconfigure(3, weight=1)
+
+        self._field1_var = tk.StringVar(self)
+        self._field2_var = tk.StringVar(self)
+        field1_entry = ttk.Entry(data_entry, textvariable=self._field1_var)
+        field1_entry.grid(row=0, column=1, sticky=tk.NSEW)
+        ttk.Label(data_entry, text='/') \
+           .grid(row=0, column=2, sticky=tk.NSEW)
+        field2_entry = ttk.Entry(data_entry, textvariable=self._field2_var)
+        field2_entry.grid(row=0, column=3, sticky=tk.NSEW)
+
+        def entry_submit(*_):
+            try:
+                field1, field2 = (radians(float(self._field1_var.get())),
+                                  radians(float(self._field2_var.get())))
+            except ValueError:
+                return
+            group = self.currently_selected_group()
+            new_netobj = group.data_type(field1, field2)
+            group.add_net_object(new_netobj)
+            self._field1_var.set('')
+            self._field2_var.set('')
+            field1_entry.focus()
+
+        for entry in field1_entry, field2_entry:
+            entry.bind('<Return>', entry_submit)
 
         if focus_key_groups:
             self.bind_all(focus_key_groups, lambda _: groups_frm.focus())
@@ -177,6 +207,26 @@ class StereonetInput(ttk.PanedWindow):  # pylint: disable=too-many-ancestors
         self._group_widgets[group] = widget = \
             GroupListItem(self._groups_scroll, group, self._groups_sel_var)
         widget.grid(column=0, sticky=tk.NSEW)
+
+        def add_item_to_tree(group, item):
+            if group == self.currently_selected_group():
+                item_values = tuple(int(round(degrees(getattr(item, field))))
+                                    for field in group.data_type.FIELDS)
+                item_num = len(self._data_tree.get_children()) + 1
+                tree_item = self._data_tree.insert('', tk.END, text=item_num,
+                                                   values=item_values)
+                self._data_tree.see(tree_item)
+                self._data_tree_items[item] = tree_item
+
+        def remove_item_from_tree(group, item):
+            if group == self.currently_selected_group():
+                self._data_tree.delete(self._data_tree_items[item])
+                del self._data_tree_items[item]
+                for i, tree_item in enumerate(self._data_tree.get_children()):
+                    self._data_tree.item(tree_item, text=i)
+
+        group.register_add_item(add_item_to_tree)
+        group.register_remove_item(remove_item_from_tree)
 
     def currently_selected_group(self):
         '''Return the group that is currently selected, or None if none is.'''
@@ -205,6 +255,6 @@ class StereonetInput(ttk.PanedWindow):  # pylint: disable=too-many-ancestors
         self._data_tree.selection_set()
         self._data_tree.delete(*self._data_tree.get_children())
         for i, netobj in enumerate(group.net_objects()):
-            item_values = tuple(getattr(netobj, field)
+            item_values = tuple(int(round(degrees(getattr(netobj, field))))
                                 for field in group.data_type.FIELDS)
             self._data_tree.insert('', tk.END, text=i+1, values=item_values)
