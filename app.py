@@ -48,18 +48,22 @@ class StereonetApp(ttk.Frame):  # pylint: disable=too-many-ancestors
             for netobj in group.net_objects():
                 for net in self._stereonets:
                     net.remove_net_object(netobj)
+                    net.update()
         def plot_group_netobjs(group):
             for netobj in group.net_objects():
                 for net in self._stereonets:
                     net.plot(netobj, **group.style)
+                    net.update()
         def unplot_group_item(group, netobj):
             if group.enabled.get():
                 for net in self._stereonets:
                     net.remove_net_object(netobj)
+                    net.update()
         def plot_group_item(group, netobj):
             if group.enabled.get():
                 for net in self._stereonets:
                     net.plot(netobj, **group.style)
+                    net.update()
 
         self.data_groups = [DataGroup('test', Line, False),
                             DataGroup('test 2', Plane, False)]
