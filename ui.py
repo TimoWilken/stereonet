@@ -162,26 +162,25 @@ class StereonetInput(ttk.PanedWindow):  # pylint: disable=too-many-ancestors
         data_entry.columnconfigure(1, weight=1)
         data_entry.columnconfigure(3, weight=1)
 
-        self._field1_var = tk.StringVar(self)
-        self._field2_var = tk.StringVar(self)
-        field1_entry = ttk.Entry(data_entry, textvariable=self._field1_var)
+        field1_var, field2_var = tk.StringVar(self), tk.StringVar(self)
+        field1_entry = ttk.Entry(data_entry, textvariable=field1_var)
         field1_entry.grid(row=0, column=1, sticky=tk.NSEW)
         ttk.Label(data_entry, text='/') \
            .grid(row=0, column=2, sticky=tk.NSEW)
-        field2_entry = ttk.Entry(data_entry, textvariable=self._field2_var)
+        field2_entry = ttk.Entry(data_entry, textvariable=field2_var)
         field2_entry.grid(row=0, column=3, sticky=tk.NSEW)
 
         def entry_submit(*_):
             try:
-                field1, field2 = (radians(float(self._field1_var.get())),
-                                  radians(float(self._field2_var.get())))
+                field1, field2 = (radians(float(field1_var.get())),
+                                  radians(float(field2_var.get())))
             except ValueError:
                 return
             group = self.currently_selected_group()
             new_netobj = group.data_type(field1, field2)
             group.add_net_object(new_netobj)
-            self._field1_var.set('')
-            self._field2_var.set('')
+            field1_var.set('')
+            field2_var.set('')
             field1_entry.focus()
 
         for entry in field1_entry, field2_entry:
