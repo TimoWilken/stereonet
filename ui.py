@@ -138,11 +138,6 @@ class StereonetInput(ttk.PanedWindow):  # pylint: disable=too-many-ancestors
             groups_frm, grid={'row': 0, 'column': 0, 'sticky': tk.NSEW})
         self._groups_scroll.columnconfigure(0, weight=1)
 
-        self._groups_sel_var = tk.IntVar(self)
-        self._groups_sel_var.trace('w', lambda *_: self.select_group())
-        for group in data_groups:
-            self.add_group(group)
-
         data_frm = ttk.LabelFrame(self, text='Data',
                                   underline=0 if focus_key_data else None)
         self.add(data_frm, weight=3)
@@ -196,6 +191,11 @@ class StereonetInput(ttk.PanedWindow):  # pylint: disable=too-many-ancestors
             self.bind_all(focus_key_groups, lambda _: groups_frm.focus())
         if focus_key_data:
             self.bind_all(focus_key_data, lambda _: data_frm.focus())
+
+        self._groups_sel_var = tk.IntVar(self)
+        self._groups_sel_var.trace('w', lambda *_: self.select_group())
+        for group in data_groups:
+            self.add_group(group)
 
     def add_group(self, group=None):
         '''Add a widget for the given group, creating one if none is given.'''
