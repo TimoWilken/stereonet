@@ -3,12 +3,58 @@
 '''Basic representations of structural data.'''
 
 import operator as op
-from math import pi, sin, cos, atan, asin, degrees
+from math import sqrt, pi, sin, cos, atan, asin, degrees
 
 
 def to_int_degrees(rad):
     '''Round radians to integer degrees.'''
     return int(round(degrees(rad)))
+
+
+class DirectionCosines(tuple):
+    '''Represents direction cosines, acting like a cartesian vector.'''
+
+    def __add__(self, other):
+        return DirectionCosines(self[i] + comp for i, comp in enumerate(other))
+
+    def __sub__(self, other):
+        return DirectionCosines(self[i] - comp for i, comp in enumerate(other))
+
+    def __mul__(self, other):
+        # scalar multiplication, DirectionCosines * scalar
+        return DirectionCosines(comp * other for comp in self)
+    # scalar multiplication, scalar * DirectionCosines
+    __rmul__ = __mul__
+
+    def __truediv__(self, other):
+        return DirectionCosines(comp / other for comp in self)
+
+    def __floordiv__(self, other):
+        return DirectionCosines(comp // other for comp in self)
+
+    def __neg__(self):
+        return DirectionCosines(-comp for comp in self)
+
+    def __pos__(self):
+        return self
+
+    def __abs__(self):
+        return DirectionCosines(map(abs, self))
+
+    def __int__(self):
+        # vector length
+        return int(float(self))
+
+    def __float__(self):
+        # vector length
+        return sqrt(sum(comp**2 for comp in self))
+
+    def cross_product(self, other):
+        '''Calculate the vector cross product (self x other).'''
+        s_i, s_j, s_k = self
+        o_i, o_j, o_k = other
+        cross_prod = s_j*o_k - s_k*o_j, s_k*o_i - s_i*o_k, s_i*o_j - s_j*o_i
+        return DirectionCosines(cross_prod)
 
 
 class Rotation:
@@ -55,9 +101,9 @@ class Plane(Rotation):
 
     def direction_cosines(self):
         '''Returns north, east, down direction cosines of the plane's pole.'''
-        return (sin(self.dip) * sin(self.strike),
-                -sin(self.dip) * cos(self.strike),
-                cos(self.dip))
+        return DirectionCosines((sin(self.dip) * sin(self.strike),
+                                 -sin(self.dip) * cos(self.strike),
+                                 cos(self.dip)))
 
     def pole(self):
         '''Get the pole (normal vector) to the plane as a Line.'''
@@ -93,9 +139,9 @@ class Line:
 
     def direction_cosines(self):
         '''Returns north, east, down direction cosines of the line.'''
-        return (cos(self.plunge) * cos(self.trend),
-                cos(self.plunge) * sin(self.trend),
-                sin(self.plunge))
+        return DirectionCosines((cos(self.plunge) * cos(self.trend),
+                                 cos(self.plunge) * sin(self.trend),
+                                 sin(self.plunge)))
 
     def rotate_around(self, axis, lat):
         '''Returns the line rotated around the given axis by the given lat.'''
