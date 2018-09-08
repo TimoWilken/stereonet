@@ -14,6 +14,10 @@ def to_int_degrees(rad):
 class DirectionCosines(tuple):
     '''Represents direction cosines, acting like a cartesian vector.'''
 
+    def __init__(self, iterable):
+        self.north, self.east, self.down = tpl = tuple(iterable)
+        super().__init__(tpl)
+
     def __add__(self, other):
         return DirectionCosines(self[i] + comp for i, comp in enumerate(other))
 
@@ -75,6 +79,10 @@ class Rotation:
     def __str__(self):
         return '{!s} around {!s}'.format(self.base_line, self.rot_axis)
 
+    def __repr__(self):
+        return '{}({!r}, {!r})'.format(
+            type(self).__name__, self.rot_axis, self.base_line)
+
     def __hash__(self):
         return hash((self.rot_axis, self.base_line))
 
@@ -115,9 +123,15 @@ class Plane(Rotation):
         '''Get the pole (normal vector) to the plane as a Line.'''
         return Line(trend=self.strike - pi/2, plunge=pi/2 - self.dip)
 
+    def _components_in_degrees(self):
+        return tuple(map(to_int_degrees, (self.strike, self.dip)))
+
     def __str__(self):
-        return '{:03d}/{:02d}' \
-            .format(*map(to_int_degrees, (self.strike, self.dip)))
+        return '{:03.0f}/{:02.0f}'.format(*self._components_in_degrees())
+
+    def __repr__(self):
+        return '{}({:03.0f}, {:02.0f})'.format(
+            type(self).__name__, *self._components_in_degrees())
 
     def __hash__(self):
         return hash((self.strike, self.dip))
@@ -176,9 +190,15 @@ class Line:
             rot_cosines = tuple(map(op.neg, rot_cosines))
         return Line.from_direction_cosines(rot_cosines)
 
+    def _components_in_degrees(self):
+        return tuple(map(to_int_degrees, (self.plunge, self.trend)))
+
     def __str__(self):
-        return '{:02d}/{:03d}' \
-            .format(*map(to_int_degrees, (self.plunge, self.trend)))
+        return '{:02.0f}/{:03.0f}'.format(*self._components_in_degrees())
+
+    def __repr__(self):
+        return '{}({:02.0f}, {:03.0f})'.format(
+            type(self).__name__, *self._components_in_degrees())
 
     def __hash__(self):
         return hash((self.plunge, self.trend))
