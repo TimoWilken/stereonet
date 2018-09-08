@@ -14,9 +14,20 @@ def to_int_degrees(rad):
 class DirectionCosines(tuple):
     '''Represents direction cosines, acting like a cartesian vector.'''
 
-    def __init__(self, iterable):
-        self.north, self.east, self.down = tpl = tuple(iterable)
-        super().__init__(tpl)
+    @property
+    def north(self):
+        '''North or first coordinate.'''
+        return self[0]
+
+    @property
+    def east(self):
+        '''East or second coordinate.'''
+        return self[1]
+
+    @property
+    def down(self):
+        '''Down or third coordinate.'''
+        return self[2]
 
     def __add__(self, other):
         return DirectionCosines(self[i] + comp for i, comp in enumerate(other))
