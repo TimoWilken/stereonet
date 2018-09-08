@@ -99,6 +99,12 @@ class Plane(Rotation):
         '''Create a plane perpendicular to the given line.'''
         return cls(strike=pole.trend + pi/2, dip=pi/2 - pole.dip)
 
+    @classmethod
+    def from_spanning_lines(cls, line1, line2):
+        '''Create the plane that is spanned by two non-parallel lines.'''
+        dircos1, dircos2 = line1.direction_cosines(), line2.direction_cosines()
+        return cls.from_direction_cosines(dircos1.cross_product(dircos2))
+
     def direction_cosines(self):
         '''Returns north, east, down direction cosines of the plane's pole.'''
         return DirectionCosines((sin(self.dip) * sin(self.strike),
