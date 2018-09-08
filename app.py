@@ -9,6 +9,7 @@ import tkinter as tk
 from tkinter import ttk, filedialog
 from math import pi, radians
 
+import analysis
 from stereonets import EqualAngle, EqualArea
 from transformation import Line, Plane
 from grouping import DataGroup
@@ -137,12 +138,24 @@ class StereonetApp(ttk.Frame):  # pylint: disable=too-many-ancestors
                     '<Control-d>', menu=groups_menu, toolbar=toolbar,
                     underline=0)
 
+        analysis_menu = tk.Menu(menubar, tearoff=False)
+        menubar.add_cascade(label='Analysis', underline=0, menu=analysis_menu)
+        add_command('Fold analysis', self._fold_analysis,
+                    menu=analysis_menu, underline=0)
+
         theme_menu = tk.Menu(menubar, tearoff=False)
         menubar.add_cascade(label='Theme', underline=0, menu=theme_menu)
         theme_var = tk.StringVar(theme_menu, ttk.Style().theme_use())
         theme_var.trace('w', lambda *_: ttk.Style().theme_use(theme_var.get()))
         for theme in ttk.Style().theme_names():
             theme_menu.add_radiobutton(label=theme, variable=theme_var)
+
+    def _fold_analysis(self):
+        netobjs = self._net_input.currently_selected_group().net_objects()
+        fold = analysis.Fold(netobjs)
+        group = self.add_group()
+        group.add_net_object(fold.profile_plane())
+        #group.add_net_object(fold.axial_plane())
 
     def _setup_stereonets(self, size):
         '''Create stereonets and populate them with guide lines.'''
