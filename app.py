@@ -44,43 +44,18 @@ class StereonetApp(ttk.Frame):  # pylint: disable=too-many-ancestors
         ttk.Label(statusbar, textvariable=self._status_message) \
            .grid(row=0, column=0, sticky=tk.NSEW)
 
-        def unplot_group_netobjs(group):
-            for netobj in group.net_objects():
-                for net in self._stereonets:
-                    net.remove_net_object(netobj)
-                    net.update()
-        def plot_group_netobjs(group):
-            for netobj in group.net_objects():
-                for net in self._stereonets:
-                    net.plot(netobj, **group.style)
-                    net.update()
-        def unplot_group_item(group, netobj):
-            if group.enabled.get():
-                for net in self._stereonets:
-                    net.remove_net_object(netobj)
-                    net.update()
-        def plot_group_item(group, netobj):
-            if group.enabled.get():
-                for net in self._stereonets:
-                    net.plot(netobj, **group.style)
-                    net.update()
+        self._stereonets = []
+        self._setup_stereonets(stereonet_size)
 
-        self.data_groups = [DataGroup('test', Line, False),
-                            DataGroup('test 2', Plane, False)]
+        self.data_groups = []
+        self._net_input = StereonetInput(self, self.data_groups)
+        self._net_input.grid(row=1, column=2, sticky=tk.NSEW)
+        for group in [DataGroup('test', Line, False),
+                      DataGroup('test 2', Plane, False)]:
+            self.add_group(group)
         self.data_groups[0].add_net_object(Line(*map(radians, (10, 180))))
         self.data_groups[0].add_net_object(Line(*map(radians, (5, 330))))
         self.data_groups[1].add_net_object(Plane(*map(radians, (210, 85))))
-        for group in self.data_groups:
-            group.register_hide_group(unplot_group_netobjs)
-            group.register_show_group(plot_group_netobjs)
-            group.register_remove_item(unplot_group_item)
-            group.register_add_item(plot_group_item)
-
-        self._net_input = StereonetInput(self, self.data_groups)
-        self._net_input.grid(row=1, column=2, sticky=tk.NSEW)
-
-        self._stereonets = []
-        self._setup_stereonets(stereonet_size)
 
         self._current_file_name = None
         filed_opts = {'initialdir': os.curdir, 'parent': self}
@@ -249,9 +224,36 @@ class StereonetApp(ttk.Frame):  # pylint: disable=too-many-ancestors
             net.postscript(x=0, y=0, width=net.size, height=net.size,
                            file=f'net{i}.eps')
 
-    def add_group(self):
+    def add_group(self, group=None):
         '''Add a new group to the list of data groups.'''
-        self._net_input.add_group()
+        def unplot_group_netobjs(group):
+            for netobj in group.net_objects():
+                for net in self._stereonets:
+                    net.remove_net_object(netobj)
+                    net.update()
+        def plot_group_netobjs(group):
+            for netobj in group.net_objects():
+                for net in self._stereonets:
+                    net.plot(netobj, **group.style)
+                    net.update()
+        def unplot_group_item(group, netobj):
+            if group.enabled.get():
+                for net in self._stereonets:
+                    net.remove_net_object(netobj)
+                    net.update()
+        def plot_group_item(group, netobj):
+            if group.enabled.get():
+                for net in self._stereonets:
+                    net.plot(netobj, **group.style)
+                    net.update()
+
+        group = self._net_input.add_group(group)
+        group.register_hide_group(unplot_group_netobjs)
+        group.register_show_group(plot_group_netobjs)
+        group.register_remove_item(unplot_group_item)
+        group.register_add_item(plot_group_item)
+        self.data_groups.append(group)
+        return group
 
     def remove_current_group(self):
         '''Remove the currently selected group from the list of data groups.'''

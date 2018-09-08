@@ -226,6 +226,7 @@ class StereonetInput(ttk.PanedWindow):  # pylint: disable=too-many-ancestors
 
         group.register_add_item(add_item_to_tree)
         group.register_remove_item(remove_item_from_tree)
+        return group
 
     def currently_selected_group(self):
         '''Return the group that is currently selected, or None if none is.'''
