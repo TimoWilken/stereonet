@@ -2,6 +2,8 @@
 
 '''Helper module for serializing and deserializing stereonet data.'''
 
+from math import degrees, radians
+
 from grouping import DataGroup
 from transformation import Line, Plane, Rotation
 
@@ -14,13 +16,15 @@ def stereonet_object_encoder(obj):
 
     tries = [
         # DataGroup
-        lambda o: {'name': o.name, 'style': o.style, 'data': o.net_objects},
+        lambda o: {'name': o.name, 'style': o.style, 'data': o.net_objects()},
         # Line
-        lambda o: {'plunge': o.plunge, 'trend': o.trend},
+        lambda o: {'plunge': degrees(o.plunge), 'trend': degrees(o.trend)},
         # Plane
-        lambda o: {'strike': o.strike, 'dip': o.dip},
+        lambda o: {'strike': degrees(o.strike), 'dip': degrees(o.dip)},
         # Rotation
         lambda o: {'rotation_axis': o.rot_axis, 'base_line': o.base_line},
+        # tk.*Var
+        lambda o: o.get(),
     ]
 
     for serialize in tries:
@@ -28,7 +32,7 @@ def stereonet_object_encoder(obj):
             return serialize(obj)
         except AttributeError:
             continue
-    raise TypeError
+    raise TypeError(f'{type(obj).__name__} {obj}')
 
 
 def stereonet_object_decoder(obj):
@@ -42,9 +46,9 @@ def stereonet_object_decoder(obj):
             group.add_net_object(data)
         return group
     if 'plunge' in obj and 'trend' in obj:
-        return Line(**obj)
+        return Line(**{k: radians(v) for k, v in obj.items()})
     if 'strike' in obj and 'dip' in obj:
-        return Plane(**obj)
+        return Plane(**{k: radians(v) for k, v in obj.items()})
     if 'rotation_axis' in obj and 'base_line' in obj:
         obj['rot_axis'] = obj.pop('rotation_axis')
         return Rotation(**obj)

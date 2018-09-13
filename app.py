@@ -49,7 +49,7 @@ class StereonetApp(ttk.Frame):  # pylint: disable=too-many-ancestors
         self._setup_stereonets(stereonet_size)
 
         self.data_groups = []
-        self._net_input = StereonetInput(self, self.data_groups)
+        self._net_input = StereonetInput(self)
         self._net_input.grid(row=1, column=2, sticky=tk.NSEW)
         for group in [DataGroup('test', Line, False),
                       DataGroup('test 2', Plane, False)]:
@@ -155,7 +155,7 @@ class StereonetApp(ttk.Frame):  # pylint: disable=too-many-ancestors
         fold = analysis.Fold(netobjs)
         group = self.add_group()
         group.add_net_object(fold.profile_plane())
-        #group.add_net_object(fold.axial_plane())
+        group.add_net_object(fold.axial_plane())
 
     def _setup_stereonets(self, size):
         '''Create stereonets and populate them with guide lines.'''
@@ -179,7 +179,8 @@ class StereonetApp(ttk.Frame):  # pylint: disable=too-many-ancestors
 
     def _clear_all(self):
         '''Remove all plotted data and start over.'''
-        self.data_groups.clear()
+        for group in self.data_groups:
+            self.remove_group(group)
 
     def new_file(self):
         '''Handle requests to create a new, empty file.'''
@@ -195,20 +196,22 @@ class StereonetApp(ttk.Frame):  # pylint: disable=too-many-ancestors
             self._status_message.set('Opening file cancelled.')
             return
         self._current_file_name = filename
-        self._clear_all()
         self._save_dialog.options.update({
             'initialdir': os.path.dirname(filename),
             'initialfile': os.path.basename(filename),
         })
 
+        self._clear_all()
         try:
             with open(filename) as cur_file:
                 decoder = stereonet_object_decoder
-                self.data_groups = json.load(cur_file, object_hook=decoder)
+                data_groups = json.load(cur_file, object_hook=decoder)
         except (FileNotFoundError, json.decoder.JSONDecodeError) as err:
             self._status_message.set(f'Failed to open {filename}! Error: {err}')
             print(type(err).__name__, err, sep=': ', file=sys.stderr)
         else:
+            for group in data_groups:
+                self.add_group(group)
             self._status_message.set(f'Opened file {filename}.')
 
     def save_file(self):
@@ -217,7 +220,7 @@ class StereonetApp(ttk.Frame):  # pylint: disable=too-many-ancestors
             self.save_as_file()
             return
         with open(self._current_file_name, 'w') as cur_file:
-            json.dump(cur_file, self.data_groups,
+            json.dump(self.data_groups, cur_file,
                       default=stereonet_object_encoder)
         self._status_message.set(f'Saved file {self._current_file_name}.')
 
@@ -239,15 +242,13 @@ class StereonetApp(ttk.Frame):  # pylint: disable=too-many-ancestors
 
     def add_group(self, group=None):
         '''Add a new group to the list of data groups.'''
-        def unplot_group_netobjs(group):
-            for netobj in group.net_objects():
-                for net in self._stereonets:
-                    net.remove_net_object(netobj)
-                    net.update()
         def plot_group_netobjs(group):
             for netobj in group.net_objects():
                 for net in self._stereonets:
-                    net.plot(netobj, **group.style)
+                    if group.enabled.get():
+                        net.plot(netobj, **group.style)
+                    else:
+                        net.remove_net_object(netobj)
                     net.update()
         def unplot_group_item(group, netobj):
             if group.enabled.get():
@@ -261,16 +262,23 @@ class StereonetApp(ttk.Frame):  # pylint: disable=too-many-ancestors
                     net.update()
 
         group = self._net_input.add_group(group)
-        group.register_hide_group(unplot_group_netobjs)
-        group.register_show_group(plot_group_netobjs)
-        group.register_remove_item(unplot_group_item)
-        group.register_add_item(plot_group_item)
+        group.bind(change_group_enabled=plot_group_netobjs,
+                   add_item=plot_group_item, remove_item=unplot_group_item)
         self.data_groups.append(group)
+        plot_group_netobjs(group)
         return group
 
     def remove_current_group(self):
         '''Remove the currently selected group from the list of data groups.'''
-        self._net_input.remove_group()
+        self.remove_group()
+
+    def remove_group(self, group=None):
+        '''Remove the specified group from the list of data groups.'''
+        if not group:
+            group = self._net_input.currently_selected_group()
+            if not group:
+                raise ValueError('no group given or selected')
+        self._net_input.remove_group(group)
 
     def _net_object_handler(self, event, net_object):
         # net_object is the Plane or Line that was (De)Activated

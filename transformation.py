@@ -2,7 +2,7 @@
 
 '''Basic representations of structural data.'''
 
-import operator as op
+import sys
 from math import sqrt, pi, sin, cos, atan, asin, degrees
 
 
@@ -71,6 +71,14 @@ class DirectionCosines(tuple):
         cross_prod = s_j*o_k - s_k*o_j, s_k*o_i - s_i*o_k, s_i*o_j - s_j*o_i
         return DirectionCosines(cross_prod)
 
+    def dot_product(self, other):
+        '''Calculate the vector dot product (self . other).'''
+        return sum(self[i] * c for i, c in enumerate(other))
+
+    def normalised(self):
+        '''Return DirectionCosines in the same direction, just of length 1.'''
+        return self / float(self)
+
 
 class Rotation:
     '''The plane spanned by one line rotated around an axis.'''
@@ -105,6 +113,10 @@ class Plane(Rotation):
     FIELDS = __slots__
 
     def __init__(self, strike, dip):
+        if dip < 0:
+            strike += pi
+            dip = -dip
+        strike %= 2 * pi
         self.strike, self.dip = strike, dip
         super().__init__(self.pole(), Line(0, self.strike))
 
@@ -116,13 +128,22 @@ class Plane(Rotation):
     @classmethod
     def from_pole(cls, pole):
         '''Create a plane perpendicular to the given line.'''
-        return cls(strike=pole.trend + pi/2, dip=pi/2 - pole.dip)
+        return cls(strike=pole.trend + pi/2, dip=pi/2 - pole.plunge)
+
+    @classmethod
+    def from_spanning_direction_cosines(cls, dircos1, dircos2):
+        '''Create the plane that is spanned by two non-parallel vectors.'''
+        assert dircos1 not in (dircos2, -dircos2), 'need non-parallel lines'
+        normal = dircos1.cross_product(dircos2)
+        if normal.down < 0:
+            normal = -normal
+        return cls.from_direction_cosines(normal)
 
     @classmethod
     def from_spanning_lines(cls, line1, line2):
         '''Create the plane that is spanned by two non-parallel lines.'''
         dircos1, dircos2 = line1.direction_cosines(), line2.direction_cosines()
-        return cls.from_direction_cosines(dircos1.cross_product(dircos2))
+        return cls.from_spanning_direction_cosines(dircos1, dircos2)
 
     def direction_cosines(self):
         '''Returns north, east, down direction cosines of the plane's pole.'''
@@ -155,18 +176,22 @@ class Line:
     FIELDS = __slots__
 
     def __init__(self, plunge, trend):
+        if plunge < 0:
+            trend += pi
+            plunge = -plunge
+        trend %= 2 * pi
         self.plunge, self.trend = plunge, trend
 
     @classmethod
     def from_direction_cosines(cls, cosines):
         '''Create a line from the given north, east, down direction cosines.'''
-        north, east, down = cosines
+        north, east, down = cosines.normalised()
         trend = pi / 2 if east >= 0 else 3 * pi / 2
         if north != 0:
             trend = atan(east / north)
             if north < 0:
                 trend += pi
-        return cls(trend=trend % (2*pi), plunge=asin(down))
+        return cls(asin(down), trend)
 
     def direction_cosines(self):
         '''Returns north, east, down direction cosines of the line.'''
@@ -194,11 +219,19 @@ class Line:
         ]]
 
         unrot_cosines = self.direction_cosines()
-        rot_cosines = [sum(trans_row[j] * unrot
-                           for j, unrot in enumerate(unrot_cosines))
-                       for trans_row in transform]
-        if rot_cosines[2] < 0:
-            rot_cosines = tuple(map(op.neg, rot_cosines))
+        rot_cosines = DirectionCosines(
+            sum(trans_row[j] * unrot for j, unrot in enumerate(unrot_cosines))
+            for trans_row in transform)
+        if -sys.float_info.epsilon < rot_cosines.down < 0:
+            # For lower-hemisphere direction cosines, the down component can be
+            # -1e-16; float epsilon (~2.2e-16) should be a sensible limit. E.g.
+            # for Line(0, 0).rotate_around(Line(pi/4, 3*pi/2), pi), which
+            # should be Line(0, pi) but instead would be Line(0, 0) without
+            # this correction.
+            north, east, _ = rot_cosines
+            rot_cosines = DirectionCosines((north, east, 0))
+        if rot_cosines.down < 0:
+            rot_cosines = -rot_cosines
         return Line.from_direction_cosines(rot_cosines)
 
     def _components_in_degrees(self):

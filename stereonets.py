@@ -158,11 +158,15 @@ class Stereonet(tk.Canvas, metaclass=abc.ABCMeta):
         self.plot_rotation(great_circle, state=tk.DISABLED)
 
     def remove_net_object(self, netobj):
-        '''Destroy the specified net object, removing it from the plot.'''
+        '''Destroy the specified net object, removing it from the plot.
+
+        If the object is not plotted, do nothing.
+        '''
         try:
             netobj = self._netobjs[netobj]
         except KeyError:
-            raise ValueError('net object not plotted')
+            # Net object not plotted.
+            pass
         else:
             self.delete(netobj)
 
