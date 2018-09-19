@@ -179,7 +179,7 @@ class StereonetApp(ttk.Frame):  # pylint: disable=too-many-ancestors
 
     def _clear_all(self):
         '''Remove all plotted data and start over.'''
-        for group in self.data_groups:
+        for group in self.data_groups[:]:
             self.remove_group(group)
 
     def new_file(self):
@@ -279,6 +279,7 @@ class StereonetApp(ttk.Frame):  # pylint: disable=too-many-ancestors
             if not group:
                 raise ValueError('no group given or selected')
         self._net_input.remove_group(group)
+        self.data_groups.remove(group)
 
     def _net_object_handler(self, event, net_object):
         # net_object is the Plane or Line that was (De)Activated
