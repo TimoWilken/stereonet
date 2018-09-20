@@ -312,10 +312,21 @@ class StereonetInput(ttk.PanedWindow):  # pylint: disable=too-many-ancestors
 
     def add_group(self, group=None):
         '''Add a widget for the given group, creating one if none is given.'''
+        NEW_GROUP_PREFIX = 'New group #'
         if not group:
-            new_group_name = f'New group #{self._cur_new_group_counter}'
+            new_group_name = NEW_GROUP_PREFIX + str(self._cur_new_group_counter)
             self._cur_new_group_counter += 1
             group = DataGroup(new_group_name)
+        else:
+            new_group_name = group.name.get()
+            if new_group_name.startswith(NEW_GROUP_PREFIX):
+                try:
+                    group_num = int(new_group_name[len(NEW_GROUP_PREFIX):])
+                except (KeyError, ValueError):
+                    pass
+                else:
+                    if self._cur_new_group_counter <= group_num:
+                        self._cur_new_group_counter = group_num + 1
         self._group_widgets[group] = widget = \
             GroupListItem(self._groups_scroll, group, self._groups_sel_var)
         widget.grid(column=0, sticky=tk.NSEW)
