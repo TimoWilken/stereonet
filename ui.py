@@ -2,12 +2,18 @@
 
 '''Extra user interface widgets for plotting stereonets.'''
 
+import functools as ft
+import operator as op
 import tkinter as tk
 from tkinter import ttk
 from math import radians, degrees
 
 from grouping import DataGroup
 from transformation import Plane, Line
+
+
+# pylint: disable=invalid-name
+chain = ft.partial(ft.reduce, lambda acc, f: f(acc))
 
 
 class ScrollableFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
@@ -145,10 +151,11 @@ class DataDisplay(ttk.Treeview):  # pylint: disable=too-many-ancestors
             self.selection_set()
             self.set_children('')
         self._group = group
-        self._group.bind(**bindings)
         self._change_group_type(self._group)
-        for item in self._group.net_objects():
-            self._add_group_item(self._group, item)
+        if group:
+            self._group.bind(**bindings)
+            for item in self._group.net_objects():
+                self._add_group_item(self._group, item)
 
     def _add_group_item(self, group, netobj):
         item_values = tuple(int(round(degrees(getattr(netobj, field))))
@@ -165,8 +172,12 @@ class DataDisplay(ttk.Treeview):  # pylint: disable=too-many-ancestors
             self.item(tree_item, text=i)
 
     def _change_group_type(self, group):
-        for i, field in enumerate(group.data_type.FIELDS):
-            self.heading(i, text=field.title())
+        if group and group.data_type:
+            for i, field in enumerate(group.data_type.FIELDS):
+                self.heading(i, text=field.title())
+        else:
+            for i in range(2):
+                self.heading(i, text='?')
 
 
 class DataEntry(ttk.Frame):  # pylint: disable=too-many-ancestors
@@ -180,25 +191,25 @@ class DataEntry(ttk.Frame):  # pylint: disable=too-many-ancestors
         self.columnconfigure(1, weight=1)
         self.columnconfigure(3, weight=1)
 
-        self._field1_name_var, self._field2_name_var, field1_var, field2_var = (
-            tk.StringVar(self) for _ in range(4))
+        self._field_name_vars = tk.StringVar(self), tk.StringVar(self)
+        field_vars = tk.StringVar(self), tk.StringVar(self)
 
         ttk.Label(self, text='/') \
            .grid(row=0, column=2, sticky=tk.NSEW)
-        ttk.Label(self, textvariable=self._field1_name_var) \
+        ttk.Label(self, textvariable=self._field_name_vars[0]) \
            .grid(row=0, column=0, sticky=tk.NSEW)
-        ttk.Label(self, textvariable=self._field2_name_var) \
+        ttk.Label(self, textvariable=self._field_name_vars[1]) \
            .grid(row=0, column=4, sticky=tk.NSEW)
 
-        field1_entry = ttk.Entry(self, textvariable=field1_var)
+        field1_entry = ttk.Entry(self, textvariable=field_vars[0])
         field1_entry.grid(row=0, column=1, sticky=tk.NSEW)
-        field2_entry = ttk.Entry(self, textvariable=field2_var)
+        field2_entry = ttk.Entry(self, textvariable=field_vars[1])
         field2_entry.grid(row=0, column=3, sticky=tk.NSEW)
 
         def on_submit_input(_):
             try:
-                field1, field2 = radians(float(field1_var.get())), \
-                                 radians(float(field2_var.get()))
+                fields = chain((radians, float, op.methodcaller('get')),
+                               field_vars)
             except ValueError:
                 # FIXME: This should probably show a status message.
                 return
@@ -206,12 +217,12 @@ class DataEntry(ttk.Frame):  # pylint: disable=too-many-ancestors
                 # FIXME: This should probably show a status message.
                 return
             # pylint: disable=not-callable
-            new_netobj = self.data_type(field1, field2)
+            new_netobj = self.data_type(*fields)
             counter = max(self._submitted_netobjs.keys(), default=-1) + 1
             self._submitted_netobjs[counter] = new_netobj
             self.event_generate('<<Netobject-Submit>>', x=counter)
-            field1_var.set('')
-            field2_var.set('')
+            for var in field_vars:
+                var.set('')
             field1_entry.focus()
 
         for entry in field1_entry, field2_entry:
@@ -234,8 +245,11 @@ class DataEntry(ttk.Frame):  # pylint: disable=too-many-ancestors
     def data_type(self, value):
         if value != self._data_type:
             self._data_type = value
-            self._field1_name_var.set(value.FIELDS[0])
-            self._field2_name_var.set(value.FIELDS[1])
+            for i, var in enumerate(self._field_name_vars):
+                try:
+                    var.set(value.FIELDS[i][0].upper())
+                except (KeyError, AttributeError):
+                    var.set('?')
 
     def pop_net_object(self, event):
         '''Get the user-submitted net object associated with an event.'''
@@ -289,7 +303,8 @@ class StereonetInput(ttk.PanedWindow):  # pylint: disable=too-many-ancestors
                         lambda event: self.currently_selected_group()
                         .add_net_object(event.widget.pop_net_object(event)))
         def update_data_entry_type(*_):
-            data_entry.data_type = self.currently_selected_group().data_type
+            data_entry.data_type = self.currently_selected_group().data_type \
+                                   if self.currently_selected_group() else None
         self._group_type_var.trace('w', update_data_entry_type)
 
         self._groups_sel_var = tk.IntVar(self)
@@ -321,6 +336,8 @@ class StereonetInput(ttk.PanedWindow):  # pylint: disable=too-many-ancestors
                 raise ValueError('no group given or selected')
         self._group_widgets[group].remove()
         del self._group_widgets[group]
+        self._group_type_var.set(type(self.currently_selected_group()).__name__)
+        self._data_display.display_data(self.currently_selected_group())
 
     def select_group(self, group=None):
         '''Select the given group and allow the user to edit its data.'''
