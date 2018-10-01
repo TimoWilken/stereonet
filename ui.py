@@ -59,21 +59,21 @@ class ScrollableFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
         canvas.bind('<Configure>', configure_canvas)
 
 
-class StyleEditor(tk.Toplevel):
+class StyleEditor(tk.Frame):  # pylint: disable=too-many-ancestors
     '''A window for editing the style of groups.'''
 
-    def __init__(self, master, group):
+    def __init__(self, master):
         super().__init__(
             master, background=ttk.Style().lookup('TFrame', 'background'))
-        self.group = group
+        self.group = None
 
         self.rowconfigure(0, weight=1)
         self.columnconfigure(0, weight=1)
 
-        ttk.Button(self, text='Close', underline=0, command=self.destroy) \
-           .grid(row=1, column=1, sticky=tk.NSEW)
+        layout = {'sticky': tk.NSEW, 'padx': 5, 'pady': 3}
+
         ttk.Button(self, text='Apply', underline=0, command=self.save) \
-           .grid(row=1, column=2, sticky=tk.NSEW)
+           .grid(row=1, column=1, **layout)
 
         base = ttk.Frame(self)
         base.grid(row=0, column=0, columnspan=3, sticky=tk.NSEW)
@@ -83,19 +83,29 @@ class StyleEditor(tk.Toplevel):
         self._thickness = tk.IntVar(self)
 
         ttk.Label(base, text='Colour') \
-           .grid(row=0, column=0, sticky=tk.NSEW)
+           .grid(row=0, column=0, **layout)
         ttk.Entry(base, textvariable=self._color) \
-           .grid(row=0, column=1, sticky=tk.NSEW)
+           .grid(row=0, column=1, **layout)
         ttk.Label(base, text='Thickness') \
-           .grid(row=1, column=0, sticky=tk.NSEW)
-        ttk.Scale(base, from_=0, to=10, variable=self._thickness,
+           .grid(row=1, column=0, **layout)
+        ttk.Scale(base, from_=1, to=10, variable=self._thickness,
                   orient=tk.HORIZONTAL) \
-           .grid(row=1, column=1, sticky=tk.NSEW)
+           .grid(row=1, column=1, **layout)
+
+    def set_group(self, group):
+        '''Allow editing the given group's style, replacing previous groups.'''
+        self.group = group
+        self._color.set(self.group.style.get('fill', 'blue'))
+        self._thickness.set(self.group.style.get('width', 2))
 
     def save(self, *_):
         '''Modify the group with changes made in this dialog.'''
         self.group.style['fill'] = self._color.get()
         self.group.style['width'] = self._thickness.get()
+        if self.group.enabled.get():
+            # TODO: Not the most elegant way of doing this.
+            self.group.enabled.set(False)
+            self.group.enabled.set(True)
 
 
 class GroupListItem(ttk.Frame):  # pylint: disable=too-many-ancestors
@@ -112,14 +122,8 @@ class GroupListItem(ttk.Frame):  # pylint: disable=too-many-ancestors
            .grid(row=0, column=1, sticky=tk.NSEW)
         ttk.Entry(self, textvariable=group.name) \
            .grid(row=0, column=2, sticky=tk.NSEW)
-        ttk.Button(self, text='Style', width=5, command=self.edit_style) \
-           .grid(row=0, column=3, sticky=tk.NSEW)
         ttk.Button(self, text='Delete', width=6, command=self.remove) \
            .grid(row=0, column=99, sticky=tk.NSEW)
-
-    def edit_style(self):
-        '''Show a style editor window to the user.'''
-        StyleEditor(self, self.group)
 
     def remove(self):
         '''Delete the widget, removing the group from all stereonets.'''
@@ -280,6 +284,9 @@ class StereonetInput(ttk.PanedWindow):  # pylint: disable=too-many-ancestors
             groups_frm, grid={'row': 0, 'column': 0, 'sticky': tk.NSEW})
         self._groups_scroll.columnconfigure(0, weight=1)
 
+        self._style_editor = StyleEditor(groups_frm)
+        self._style_editor.grid(row=1, column=0, sticky=tk.NSEW)
+
         data_frm = ttk.LabelFrame(self, text='Data')
         self.add(data_frm, weight=3)
         data_frm.rowconfigure(1, weight=1)
@@ -364,4 +371,5 @@ class StereonetInput(ttk.PanedWindow):  # pylint: disable=too-many-ancestors
                 raise ValueError('no group given or selected')
         self._group_type_var.set(group.data_type.__name__
                                  if group.data_type else '')
+        self._style_editor.set_group(group)
         self._data_display.display_data(group)

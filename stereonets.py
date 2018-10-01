@@ -37,6 +37,7 @@ class Stereonet(tk.Canvas, metaclass=abc.ABCMeta):
         self._netobjs, self._callbacks = {}, {}
 
         self._line_options = {
+            'width': 1,  # outline thickness
             'fill': 'green',
             'outline': 'darkgreen',
             'activefill': 'red',
