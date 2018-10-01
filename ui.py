@@ -12,8 +12,15 @@ from grouping import DataGroup
 from transformation import Plane, Line
 
 
+def chain(*functions, start=None):
+    '''Chain functions left-to-right.'''
+    def chained(start):
+        return ft.reduce(lambda acc, f: f(acc), functions, start)
+    return chained if start is None else chained(start)
+
+
 # pylint: disable=invalid-name
-chain = ft.partial(ft.reduce, lambda acc, f: f(acc))
+var_to_radians = chain(op.methodcaller('get'), float, radians)
 
 
 class ScrollableFrame(ttk.Frame):  # pylint: disable=too-many-ancestors
@@ -208,8 +215,7 @@ class DataEntry(ttk.Frame):  # pylint: disable=too-many-ancestors
 
         def on_submit_input(_):
             try:
-                fields = chain((radians, float, op.methodcaller('get')),
-                               field_vars)
+                fields = map(var_to_radians, field_vars)
             except ValueError:
                 # FIXME: This should probably show a status message.
                 return
