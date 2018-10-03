@@ -140,6 +140,8 @@ class StereonetApp(ttk.Frame):  # pylint: disable=too-many-ancestors
 
         analysis_menu = tk.Menu(menubar, tearoff=False)
         menubar.add_cascade(label='Analysis', underline=0, menu=analysis_menu)
+        add_command('Poles <-> Planes', self._poles_from_to_planes,
+                    menu=analysis_menu, underline=0)
         add_command('Fold analysis', self._fold_analysis,
                     menu=analysis_menu, underline=0)
 
@@ -151,11 +153,21 @@ class StereonetApp(ttk.Frame):  # pylint: disable=too-many-ancestors
             theme_menu.add_radiobutton(label=theme, variable=theme_var)
 
     def _fold_analysis(self):
-        netobjs = self._net_input.currently_selected_group().net_objects()
+        cur_group = self._net_input.currently_selected_group()
+        netobjs = cur_group.net_objects()
         fold = analysis.Fold(netobjs)
-        group = self.add_group()
+        group = DataGroup(cur_group.name.get() + ' (fold analysis)', Plane,
+                          enabled=cur_group.enabled.get())
         group.add_net_object(fold.profile_plane())
         group.add_net_object(fold.axial_plane())
+        self.add_group(group)
+
+    def _poles_from_to_planes(self):
+        '''Convert poles to planes and planes to poles.'''
+        cur_group = self._net_input.currently_selected_group()
+        conversion = analysis.planes_to_poles if cur_group.data_type == Plane \
+                     else analysis.poles_to_planes
+        self.add_group(conversion(cur_group))
 
     def _setup_stereonets(self, size):
         '''Create stereonets and populate them with guide lines.'''

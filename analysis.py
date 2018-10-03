@@ -5,6 +5,7 @@
 from math import pi, radians
 
 from transformation import Line, Plane
+from grouping import DataGroup
 
 
 def average(iterable):
@@ -25,6 +26,24 @@ def sum_iterable(iterable):
     for i in iterable:
         value += i
     return value
+
+
+def planes_to_poles(planes):
+    '''Convert a DataGroup of Planes to poles of Planes.'''
+    out_group = DataGroup(planes.name.get() + ' (poles)', Line,
+                          enabled=planes.enabled.get())
+    for plane in planes.net_objects():
+        out_group.add_net_object(plane.pole())
+    return out_group
+
+
+def poles_to_planes(poles):
+    '''Convert a DataGroup of poles of Planes to Planes.'''
+    out_group = DataGroup(poles.name.get() + ' (planes)', Plane,
+                          enabled=poles.enabled.get())
+    for pole in poles.net_objects():
+        out_group.add_net_object(Plane.from_pole(pole))
+    return out_group
 
 
 class Fold:
