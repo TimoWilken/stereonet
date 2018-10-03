@@ -16,7 +16,8 @@ def stereonet_object_encoder(obj):
 
     tries = [
         # DataGroup
-        lambda o: {'name': o.name, 'style': o.style, 'data': o.net_objects()},
+        lambda o: {'name': o.name, 'enabled': o.enabled, 'style': o.style,
+                   'data': o.net_objects()},
         # Line
         lambda o: {'plunge': degrees(o.plunge), 'trend': degrees(o.trend)},
         # Plane
@@ -40,8 +41,8 @@ def stereonet_object_decoder(obj):
 
     Designed to be passed as object_hook= to the JSONDecoder constructor.
     '''
-    if 'name' in obj and 'style' in obj and 'data' in obj:
-        group = DataGroup(obj['name'], **obj['style'])
+    if 'name' in obj and 'enabled' in obj and 'style' in obj and 'data' in obj:
+        group = DataGroup(obj['name'], enabled=obj['enabled'], **obj['style'])
         for data in obj['data']:
             group.add_net_object(data)
         return group
