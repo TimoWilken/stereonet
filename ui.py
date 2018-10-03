@@ -92,11 +92,18 @@ class StyleEditor(tk.Frame):  # pylint: disable=too-many-ancestors
                   orient=tk.HORIZONTAL) \
            .grid(row=1, column=1, **layout)
 
+        self.set_group(None)
+
     def set_group(self, group):
         '''Allow editing the given group's style, replacing previous groups.'''
         self.group = group
-        self._color.set(self.group.style.get('fill', 'blue'))
-        self._thickness.set(self.group.style.get('width', 2))
+        if group is not None:
+            self._color.set(group.style.get('fill', 'blue'))
+            self._thickness.set(group.style.get('width', 2))
+            group.bind(remove_group=lambda group: self.set_group(None))
+        else:
+            self._color.set('')
+            self._thickness.set(0)
 
     def save(self, *_):
         '''Modify the group with changes made in this dialog.'''
@@ -111,29 +118,18 @@ class StyleEditor(tk.Frame):  # pylint: disable=too-many-ancestors
 class GroupListItem(ttk.Frame):  # pylint: disable=too-many-ancestors
     '''A widget for editing and selecting a group out of a list.'''
 
-    def __init__(self, master, group, sel_variable, *, on_delete=None):
+    def __init__(self, master, group, sel_variable):
         super().__init__(master)
-        self.group = group
-        self.on_delete = on_delete
+        group.bind(remove_group=lambda group: self.destroy())
         self.columnconfigure(2, weight=1)
-        sel_btn = ttk.Radiobutton(self, value=id(group), variable=sel_variable)
-        sel_btn.grid(row=0, column=0, sticky=tk.NSEW)
+        ttk.Radiobutton(self, value=id(group), variable=sel_variable) \
+           .grid(row=0, column=0, sticky=tk.NSEW)
         ttk.Checkbutton(self, variable=group.enabled) \
            .grid(row=0, column=1, sticky=tk.NSEW)
         ttk.Entry(self, textvariable=group.name) \
            .grid(row=0, column=2, sticky=tk.NSEW)
-        ttk.Button(self, text='Delete', width=6, command=self.remove) \
+        ttk.Button(self, text='Delete', width=6, command=group.delete) \
            .grid(row=0, column=99, sticky=tk.NSEW)
-
-    def remove(self):
-        '''Delete the widget, removing the group from all stereonets.'''
-        self.group.enabled.set(False)
-        try:
-            self.on_delete(self.group)
-        except TypeError:
-            # Invalid arguments or not callable.
-            pass
-        self.destroy()
 
 
 class DataDisplay(ttk.Treeview):  # pylint: disable=too-many-ancestors
@@ -358,7 +354,6 @@ class StereonetInput(ttk.PanedWindow):  # pylint: disable=too-many-ancestors
             group = self.currently_selected_group()
             if not group:
                 raise ValueError('no group given or selected')
-        self._group_widgets[group].remove()
         del self._group_widgets[group]
         self._group_type_var.set(type(self.currently_selected_group()).__name__)
         self._data_display.display_data(self.currently_selected_group())

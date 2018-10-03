@@ -180,7 +180,7 @@ class StereonetApp(ttk.Frame):  # pylint: disable=too-many-ancestors
     def _clear_all(self):
         '''Remove all plotted data and start over.'''
         for group in self.data_groups[:]:
-            self.remove_group(group)
+            group.delete()
 
     def new_file(self):
         '''Handle requests to create a new, empty file.'''
@@ -263,7 +263,8 @@ class StereonetApp(ttk.Frame):  # pylint: disable=too-many-ancestors
 
         group = self._net_input.add_group(group)
         group.bind(change_group_enabled=plot_group_netobjs,
-                   add_item=plot_group_item, remove_item=unplot_group_item)
+                   add_item=plot_group_item, remove_item=unplot_group_item,
+                   remove_group=self.remove_group)
         self.data_groups.append(group)
         plot_group_netobjs(group)
         return group
@@ -282,12 +283,11 @@ class StereonetApp(ttk.Frame):  # pylint: disable=too-many-ancestors
         self.data_groups.remove(group)
 
     def _net_object_handler(self, event, net_object):
-        # net_object is the Plane or Line that was (De)Activated
         if event.type == tk.EventType.Enter:
             self._status_message.set(net_object)
-        elif event.type == tk.EventType.Leave:
-            if self._status_message.get() == str(net_object):
-                self._status_message.set('')
+        elif event.type == tk.EventType.Leave and \
+             self._status_message.get() == str(net_object):
+            self._status_message.set('')
 
 
 if __name__ == '__main__':

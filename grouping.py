@@ -52,6 +52,12 @@ class DataGroup:
         for callback in self._callbacks['remove_item']:
             callback(self, netobj)
 
+    def delete(self):
+        '''Delete the entire group.'''
+        self.enabled.set(False)
+        for callback in self._callbacks['remove_group']:
+            callback(self)
+
     def net_objects(self):
         '''Return structural data held in the group.'''
         return self._data.copy()
@@ -59,7 +65,8 @@ class DataGroup:
     def bind(self, **callbacks):
         '''Register a function to be called when an event is raised.
 
-        Available events are change_group_enabled, add_item, remove_item.
+        Available events are change_group_enabled, add_item, remove_item,
+        remove_group.
         '''
         for key, callback in callbacks.items():
             self._callbacks[key].append(callback)
