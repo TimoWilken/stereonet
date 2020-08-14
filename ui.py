@@ -118,7 +118,6 @@ class GroupListItem(ttk.Frame):  # pylint: disable=too-many-ancestors
 
     def __init__(self, master, group, sel_variable):
         super().__init__(master)
-        group.bind(remove_group=lambda group: self.destroy())
         self.columnconfigure(2, weight=1)
         ttk.Radiobutton(self, value=id(group), variable=sel_variable) \
            .grid(row=0, column=0, sticky=tk.NSEW)
@@ -220,7 +219,8 @@ class DataEntry(ttk.Frame):  # pylint: disable=too-many-ancestors
                 return
             if not self.data_type:
                 if status_var:
-                    status_var.set('Cannot add data point: unknown data type')
+                    status_var.set('Cannot add data point: unknown data type'
+                                   ' (have you selected a group?)')
                 return
             # pylint: disable=not-callable
             new_netobj = self.data_type(*fields)
@@ -266,10 +266,13 @@ class DataEntry(ttk.Frame):  # pylint: disable=too-many-ancestors
 class StereonetInput(ttk.PanedWindow):  # pylint: disable=too-many-ancestors
     '''A widget for inputting structural data for display on a stereonet.'''
 
-    def __init__(self, master, status_var=None):
+    def __init__(self, master, status_var=None, on_selection_change=None):
         super().__init__(master, orient=tk.VERTICAL)
         self._cur_new_group_counter = 1
         self._group_widgets = {}
+        self._select_group_callback = \
+            on_selection_change if callable(on_selection_change) \
+            else lambda _: None
 
         groups_frm = ttk.LabelFrame(self, text='Groups')
         self.add(groups_frm, weight=1)
@@ -361,7 +364,9 @@ class StereonetInput(ttk.PanedWindow):  # pylint: disable=too-many-ancestors
             group = self.currently_selected_group()
             if not group:
                 raise ValueError('no group given or selected')
+        self._group_widgets[group].grid_forget()
         del self._group_widgets[group]
+        self._groups_sel_var.set(0)
         self._group_type_var.set(type(self.currently_selected_group()).__name__)
         self._data_display.display_data(self.currently_selected_group())
 
@@ -369,9 +374,9 @@ class StereonetInput(ttk.PanedWindow):  # pylint: disable=too-many-ancestors
         '''Select the given group and allow the user to edit its data.'''
         if not group:
             group = self.currently_selected_group()
-            if not group:
-                raise ValueError('no group given or selected')
-        self._group_type_var.set(group.data_type.__name__
-                                 if group.data_type else '')
-        self._style_editor.set_group(group)
-        self._data_display.display_data(group)
+        if group:
+            self._group_type_var.set(group.data_type.__name__
+                                     if group.data_type else '')
+            self._style_editor.set_group(group)
+            self._data_display.display_data(group)
+        self._select_group_callback(group)

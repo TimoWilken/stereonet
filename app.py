@@ -49,7 +49,8 @@ class StereonetApp(ttk.Frame):  # pylint: disable=too-many-ancestors
         self._setup_stereonets(stereonet_size)
 
         self.data_groups = []
-        self._net_input = StereonetInput(self, status_var=self._status_message)
+        self._net_input = StereonetInput(self, status_var=self._status_message,
+                                         on_selection_change=self._on_group_selection_change)
         self._net_input.grid(row=1, column=2, sticky=tk.NSEW)
         for group in [DataGroup('test', Line, False),
                       DataGroup('test 2', Plane, False)]:
@@ -93,8 +94,10 @@ class StereonetApp(ttk.Frame):  # pylint: disable=too-many-ancestors
             if menu:
                 menu.add_command(label=label, command=norm_command, **options)
             if toolbar:
-                ttk.Button(toolbar, text=label, command=norm_command) \
-                    .pack(side=tk.LEFT, padx=2, pady=2)
+                btn = ttk.Button(toolbar, text=label, command=norm_command)
+                btn.pack(side=tk.LEFT, padx=2, pady=2)
+                return btn
+            return None
 
         def add_separator(*, menu=None, toolbar=None):
             if menu:
@@ -131,9 +134,9 @@ class StereonetApp(ttk.Frame):  # pylint: disable=too-many-ancestors
         add_separator(toolbar=toolbar)
         add_command('Add group', self.add_group, '<Control-g>',
                     menu=groups_menu, toolbar=toolbar, underline=0)
-        add_command('Remove current group', self.remove_current_group,
-                    '<Control-d>', menu=groups_menu, toolbar=toolbar,
-                    underline=0)
+        rmbtn = add_command('Remove current group', self.remove_current_group,
+                            '<Control-d>', menu=groups_menu, toolbar=toolbar,
+                            underline=0)
 
         analysis_menu = tk.Menu(menubar, tearoff=False)
         menubar.add_cascade(label='Analysis', underline=0, menu=analysis_menu)
@@ -141,6 +144,14 @@ class StereonetApp(ttk.Frame):  # pylint: disable=too-many-ancestors
                     menu=analysis_menu, underline=0)
         add_command('Fold analysis', self._fold_analysis,
                     menu=analysis_menu, underline=0)
+
+        # These widgets should be disabled when no group is selected.
+        self._group_dependent_widgets_configures = [
+            rmbtn.configure,
+            lambda **kw: groups_menu.entryconfigure(1, **kw),
+            lambda **kw: analysis_menu.entryconfigure(0, **kw),
+            lambda **kw: analysis_menu.entryconfigure(1, **kw),
+        ]
 
         theme_menu = tk.Menu(menubar, tearoff=False)
         menubar.add_cascade(label='Theme', underline=0, menu=theme_menu)
@@ -295,7 +306,8 @@ class StereonetApp(ttk.Frame):  # pylint: disable=too-many-ancestors
         if not group:
             group = self._net_input.currently_selected_group()
             if not group:
-                raise ValueError('no group given or selected')
+                self._status_message.set('Select a group to delete first!')
+                return
         self._net_input.remove_group(group)
         self.data_groups.remove(group)
 
@@ -305,6 +317,10 @@ class StereonetApp(ttk.Frame):  # pylint: disable=too-many-ancestors
         elif event.type == tk.EventType.Leave and \
              self._status_message.get() == str(net_object):
             self._status_message.set('')
+
+    def _on_group_selection_change(self, group):
+        for configure in self._group_dependent_widgets_configures:
+            configure(state=tk.NORMAL if group else tk.DISABLED)
 
 
 if __name__ == '__main__':
