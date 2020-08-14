@@ -77,6 +77,14 @@ class DirectionCosines(tuple):
         '''Return DirectionCosines in the same direction, just of length 1.'''
         return self / float(self)
 
+    def direction_cosines(self):
+        '''For compatibility and ease of use, return self.
+
+        This means that we can pass Planes or Lines where DirectionCosines are
+        expected (or vice versa), and normalisation is easier.
+        '''
+        return self
+
 
 class Rotation:
     '''The plane spanned by one line rotated around an axis.'''
