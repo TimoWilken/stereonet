@@ -292,6 +292,11 @@ class StereonetInput(ttk.PanedWindow):  # pylint: disable=too-many-ancestors
         possible_types = Line, Plane
         def update_group_type(*_):
             group = self.currently_selected_group()
+            if not group:
+                # No group is selected.
+                # FIXME: this should probably show an error message.
+                return
+
             for type_ in possible_types:
                 if self._group_type_var.get() == type_.__name__:
                     try:
