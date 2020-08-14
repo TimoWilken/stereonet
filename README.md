@@ -5,7 +5,8 @@ neatly.
 
 You can use the program by running `make run` or running `app.py` directly with
 Python 3. `TestData.snet` contains some example data to play with -- open it
-from Stereonet.
+from Stereonet. Note that you need to select a group using the round radio
+buttons in the list on the right before you can do most things!
 
 There are built-in tests using Python's `unittest` module; run `make test` to
 run them.
