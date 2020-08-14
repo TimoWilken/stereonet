@@ -3,8 +3,12 @@
 This program plots lines and planes on a stereonet and lets you analyse the data
 neatly.
 
-There are built-in tests using Python's `unittest` module; run `test.py` to run
-them.
+You can use the program by running `make run` or running `app.py` directly with
+Python 3. `TestData.snet` contains some example data to play with -- open it
+from Stereonet.
+
+There are built-in tests using Python's `unittest` module; run `make test` to
+run them.
 
 References I found useful when implementing this program were:
 
