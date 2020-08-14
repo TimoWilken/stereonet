@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 '''Helper module for serializing and deserializing stereonet data.'''
 
 from math import degrees, radians

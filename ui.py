@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 '''Extra user interface widgets for plotting stereonets.'''
 
 import functools as ft

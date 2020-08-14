@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 '''Grouping of structural data for display.'''
 
 from collections import defaultdict

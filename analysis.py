@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 '''Analysis functions for geological structural data.'''
 
 from math import pi, radians

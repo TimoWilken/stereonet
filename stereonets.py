@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 '''Stereonet projections of planes and lines.'''
 
 import abc
