@@ -1,6 +1,10 @@
 # Stereonet
 
-This program plots lines and planes on a stereonet and lets you analyse the data neatly.
+This program plots lines and planes on a stereonet and lets you analyse the data
+neatly.
+
+There are built-in tests using Python's `unittest` module; run `test.py` to run
+them.
 
 References I found useful when implementing this program were:
 
