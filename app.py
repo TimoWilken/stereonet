@@ -49,7 +49,7 @@ class StereonetApp(ttk.Frame):  # pylint: disable=too-many-ancestors
         self._setup_stereonets(stereonet_size)
 
         self.data_groups = []
-        self._net_input = StereonetInput(self)
+        self._net_input = StereonetInput(self, status_var=self._status_message)
         self._net_input.grid(row=1, column=2, sticky=tk.NSEW)
         for group in [DataGroup('test', Line, False),
                       DataGroup('test 2', Plane, False)]:

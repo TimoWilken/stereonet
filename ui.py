@@ -190,7 +190,7 @@ class DataDisplay(ttk.Treeview):  # pylint: disable=too-many-ancestors
 class DataEntry(ttk.Frame):  # pylint: disable=too-many-ancestors
     '''A widget for entering structural data.'''
 
-    def __init__(self, master, data_type=None):
+    def __init__(self, master, data_type=None, status_var=None):
         super().__init__(master)
         self._data_type = None
         self.data_type = data_type
@@ -216,11 +216,13 @@ class DataEntry(ttk.Frame):  # pylint: disable=too-many-ancestors
         def on_submit_input(_):
             try:
                 fields = map(var_to_radians, field_vars)
-            except ValueError:
-                # FIXME: This should probably show a status message.
+            except ValueError as err:
+                if status_var:
+                    status_var.set(f'Error adding data point: {err}')
                 return
             if not self.data_type:
-                # FIXME: This should probably show a status message.
+                if status_var:
+                    status_var.set('Cannot add data point: unknown data type')
                 return
             # pylint: disable=not-callable
             new_netobj = self.data_type(*fields)
@@ -266,7 +268,7 @@ class DataEntry(ttk.Frame):  # pylint: disable=too-many-ancestors
 class StereonetInput(ttk.PanedWindow):  # pylint: disable=too-many-ancestors
     '''A widget for inputting structural data for display on a stereonet.'''
 
-    def __init__(self, master):
+    def __init__(self, master, status_var=None):
         super().__init__(master, orient=tk.VERTICAL)
         self._cur_new_group_counter = 1
         self._group_widgets = {}
@@ -294,7 +296,9 @@ class StereonetInput(ttk.PanedWindow):  # pylint: disable=too-many-ancestors
             group = self.currently_selected_group()
             if not group:
                 # No group is selected.
-                # FIXME: this should probably show an error message.
+                if status_var:
+                    status_var.set('Select a group using the radio buttons'
+                                   ' before adding data.')
                 return
 
             for type_ in possible_types:
@@ -311,7 +315,7 @@ class StereonetInput(ttk.PanedWindow):  # pylint: disable=too-many-ancestors
         self._data_display = DataDisplay(data_frm)
         self._data_display.grid(row=1, column=0, sticky=tk.NSEW)
 
-        data_entry = DataEntry(data_frm)
+        data_entry = DataEntry(data_frm, status_var=status_var)
         data_entry.grid(row=2, column=0, sticky=tk.NSEW)
         data_entry.bind('<<Netobject-Submit>>',
                         lambda event: self.currently_selected_group()
