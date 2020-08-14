@@ -70,9 +70,6 @@ class StereonetApp(ttk.Frame):  # pylint: disable=too-many-ancestors
             title='Open file', multiple=False, **saveopend_opts)
         self._save_dialog = filedialog.SaveAs(
             title='Save file', **saveopend_opts)
-        self._export_dialog = filedialog.SaveAs(
-            **filed_opts, title='Export stereonet', defaultextension='.eps',
-            filetypes=(('Extended PostScript', '*.eps'), ('All files', '*')))
 
         if len(sys.argv) > 1:
             self.open_file(sys.argv[1])
@@ -248,9 +245,17 @@ class StereonetApp(ttk.Frame):  # pylint: disable=too-many-ancestors
 
     def export(self):
         '''Handle requests for exporting stereonets.'''
+        dirname = filedialog.askdirectory(mustexist=True)
+        if not dirname:
+            self._status_message.set('Exporting cancelled.')
+            return
+        export_fnames = []
         for i, net in enumerate(self._stereonets):
+            export_fnames.append(f'{dirname}/net{i}.eps')
             net.postscript(x=0, y=0, width=net.size, height=net.size,
-                           file=f'net{i}.eps')
+                           file=export_fnames[-1])
+        self._status_message.set(
+            'Exported files ' + ', '.join(export_fnames) + '.')
 
     def add_group(self, group=None):
         '''Add a new group to the list of data groups.'''
